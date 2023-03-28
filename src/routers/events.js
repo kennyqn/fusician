@@ -6,6 +6,7 @@ const router = new express.Router()
 const axios = require('axios');
 
 const ticketmasterApiKey = process.env.TICKETMASTER_API_KEY;
+const defaultDate = '1970-01-01T00:00:00Z' // set date of event to start of epoch time for events that don't have a date
 
 // GET /events
 router.get('/events', async (req, res) => {
@@ -23,11 +24,13 @@ router.get('/events', async (req, res) => {
       }
   
       const response = await axios.get(url);
-
       const events = response.data._embedded.events.map((event) => ({
+        id: event.id,
         name: event.name,
         location: event._embedded.venues[0].name,
-        date: event.dates.start.dateTime,
+        date: event.dates.start.hasOwnProperty('dateTime')
+        ? event.dates.start.dateTime
+        : event.dates.start.localDate,
         images: event.images,
         artists: event._embedded.hasOwnProperty('attractions')
         ? event._embedded.attractions.map((artist) => artist.name)

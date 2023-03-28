@@ -139,4 +139,92 @@ router.post('/create', async (req, res) => {
     }
   });
 
+router.get('/search', async (req, res) => {
+    try {
+      const searchTerm = req.query.q;
+      const artistResponse = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist`, {
+        headers: {
+          'Authorization': `Bearer ${spotifyAccessToken}`
+        }
+      });
+      const artists = artistResponse.data.artists.items;
+      const artistPromises = artists.map(artist => getArtist(artist.id));
+
+      const searchResults = await Promise.all(artistPromises);
+
+      res.json(searchResults);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+// GET /artists endpoint handler - retrieve a list of search results for an artist name
+router.get('/artist/:id', (req, res) => {
+  const artistId = req.params.id;
+
+  // Call the getArtist function to retrieve artist information
+  getArtist(artistId)
+    .then(artist => {
+      // Retrieve additional information
+      const monthlyListeners = artist.followers.total;
+      const genres = artist.genres;
+      const topTracks = artist.topTracks.tracks;
+      const relatedArtists = artist.relatedArtists.artists;
+
+      // Create the artist object with additional information
+      const artistObject = {
+        id: artist.id,
+        name: artist.name,
+        images: artist.images,
+        popularity: artist.popularity,
+        monthlyListeners: monthlyListeners,
+        genres: genres,
+        topTracks: topTracks,
+        relatedArtists: relatedArtists
+      };
+
+      // Return the artist object as a JSON response
+      res.json(artistObject);
+    })
+    .catch(error => {
+      console.log(error);
+      res.status(500).send('Error retrieving artist information');
+    });
+});
+
+
+// helper function to retrieve additional artist meta data
+async function getArtist(artistId) {
+  const artistUrl = `https://api.spotify.com/v1/artists/${artistId}`;
+  const topTracksUrl = `${artistUrl}/top-tracks?market=US`;
+  const relatedArtistsUrl = `${artistUrl}/related-artists`;
+  const headers = {
+    headers: {
+      'Authorization': `Bearer ${spotifyAccessToken}`,
+    },
+  }
+
+  const artistResponse = await axios.get(artistUrl, headers);
+  const topTracksResponse = await axios.get(topTracksUrl, headers);
+  const relatedArtistsResponse = await axios.get(relatedArtistsUrl, headers);
+
+  const artist = artistResponse.data;
+  const topTracks = topTracksResponse.data.tracks;
+  const relatedArtists = relatedArtistsResponse.data.artists;
+  const genres = artist.genres;
+  const monthlyListeners = artist.followers.total;
+  const images = artist.images;
+
+  return {
+    id: artistId,
+    name: artist.name,
+    topTracks: topTracks,
+    relatedArtists: relatedArtists,
+    genres: genres,
+    monthlyListeners: monthlyListeners,
+    images: images,
+  };
+}
+
 module.exports = router
