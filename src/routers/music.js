@@ -4,6 +4,7 @@ require('dotenv').config({ path: path.resolve('credentials.env') });
 const express = require('express')
 const router = new express.Router()
 const axios = require('axios');
+const { get } = require('http');
 
 // GET /albums
 router.get('/albums', async (req, res) => {
@@ -30,7 +31,7 @@ router.get('/albums', async (req, res) => {
             releaseDate: album.release_date,
             id: album.id,
             total_tracks: album.total_tracks,
-            images: album.images
+            imageUrl: album.images.length > 0 ? album.images[0].url : null
         }
       }
       );
@@ -77,7 +78,7 @@ router.get('/songs', async (req, res) => {
         id: song.id,
         name: song.name,
         url: song.external_urls.spotify,
-        images: song.album.images,
+        imageUrl: song.album.images.length > 0 ? song.album.images[0].url : null,
         popularity: song.popularity
       };
     });
@@ -159,7 +160,7 @@ router.get('/search', async (req, res) => {
     }
   });
 
-// GET /artists endpoint handler - retrieve a list of search results for an artist name
+// GET /artist endpoint handler - retrieve information about an artist
 router.get('/artist/:id', (req, res) => {
   const artistId = req.params.id;
 
@@ -176,7 +177,7 @@ router.get('/artist/:id', (req, res) => {
       const artistObject = {
         id: artist.id,
         name: artist.name,
-        images: artist.images,
+        imageUrl: artist.images.length > 0 ? artist.images[0].url : null,
         popularity: artist.popularity,
         monthlyListeners: monthlyListeners,
         genres: genres,
@@ -214,7 +215,7 @@ async function getArtist(artistId) {
   const relatedArtists = relatedArtistsResponse.data.artists;
   const genres = artist.genres;
   const monthlyListeners = artist.followers.total;
-  const images = artist.images;
+  const imageUrl = artist.images.length > 0 ? artist.images[0].url : null;
 
   return {
     id: artistId,
@@ -223,8 +224,9 @@ async function getArtist(artistId) {
     relatedArtists: relatedArtists,
     genres: genres,
     monthlyListeners: monthlyListeners,
-    images: images,
+    imageUrl: imageUrl,
   };
 }
 
-module.exports = router
+module.exports = router;
+module.exports = getArtist;
