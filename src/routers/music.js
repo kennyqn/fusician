@@ -8,7 +8,7 @@ const getArtist = require('../helpers/getArtist')
 
 // GET /albums
 router.get('/albums', async (req, res) => {
-    let spotifyAccessToken = process.env.SPOTIFY_ACCESS_TOKEN;
+    let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
     try {
       const artistName = req.query.artist;
       const artistResponse = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
@@ -45,7 +45,7 @@ router.get('/albums', async (req, res) => {
 
 // GET /songs
 router.get('/songs', async (req, res) => {
-  let spotifyAccessToken = process.env.SPOTIFY_ACCESS_TOKEN;
+  let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
   try {
     const album = req.query.album;
 
@@ -92,7 +92,7 @@ router.get('/songs', async (req, res) => {
 
 // POST /create
 router.post('/create', async (req, res) => {
-    let spotifyAccessToken = process.env.SPOTIFY_ACCESS_TOKEN;
+    let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
     try {
       const playlistName = req.body.name;
       const songs = req.body.songs;
@@ -141,6 +141,7 @@ router.post('/create', async (req, res) => {
   });
 
 router.get('/search', async (req, res) => {
+    let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
     try {
       const searchTerm = req.query.q;
       const artistResponse = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(searchTerm)}&type=artist`, {
@@ -149,7 +150,7 @@ router.get('/search', async (req, res) => {
         }
       });
       const artists = artistResponse.data.artists.items;
-      const artistPromises = artists.map(artist => getArtist(artist.id));
+      const artistPromises = artists.map(artist => getArtist(artist.id, spotifyAccessToken));
 
       const searchResults = await Promise.all(artistPromises);
 
@@ -165,7 +166,7 @@ router.get('/artist/:id', (req, res) => {
   const artistId = req.params.id;
 
   // Call the getArtist function to retrieve artist information
-  getArtist(artistId)
+  getArtist(artistId, spotifyAccessToken)
     .then(artist => {
       // Retrieve additional information
       const monthlyListeners = artist.followers.total;

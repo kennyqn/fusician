@@ -1,8 +1,7 @@
 const axios = require('axios');
 
 // helper function to retrieve additional artist meta data
-async function getArtist(artistId) {
-    let spotifyAccessToken = process.env.SPOTIFY_ACCESS_TOKEN;
+async function getArtist(artistId, spotifyAccessToken) {
     const artistUrl = `https://api.spotify.com/v1/artists/${artistId}`;
     const topTracksUrl = `${artistUrl}/top-tracks?market=US`;
     const relatedArtistsUrl = `${artistUrl}/related-artists`;

@@ -11,7 +11,7 @@ const defaultDate = '1970-01-01T00:00:00Z' // set date of event to start of epoc
 
 // GET /events
 router.get('/events', async (req, res) => {
-    let spotifyAccessToken = process.env.SPOTIFY_ACCESS_TOKEN;
+    let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
     try {
       const { city, radius, name } = req.query;
   
@@ -42,7 +42,7 @@ router.get('/events', async (req, res) => {
           return artistResponse.data.artists.items.length > 0 ? artistResponse.data.artists.items[0].id : null;
         }));
       
-        const artistPromises = artistIds.map((artistId) => getArtist(artistId));
+        const artistPromises = artistIds.map((artistId) => getArtist(artistId, spotifyAccessToken));
       
         const artists = await Promise.all(artistPromises);
         artistIdsMap.set(event.id, artistIds);

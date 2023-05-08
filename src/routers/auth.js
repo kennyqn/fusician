@@ -9,7 +9,7 @@ const axios = require('axios');
 const spotifyClientId = process.env.SPOTIFY_API_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_API_CLIENT_SECRET;
 const redirectUri = 'http://localhost:3000/callback';
-const scope = 'playlist-modify-private playlist-modify-public';
+const scope = 'user-read-email playlist-modify-private playlist-modify-public';
 
 // GET /login
 router.get('/login', function(req, res) {
