@@ -92,53 +92,97 @@ router.get('/songs', async (req, res) => {
 
 // POST /create
 router.post('/create', async (req, res) => {
-    let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
-    try {
+  let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
+  try {
       const playlistName = req.body.name;
-      const songs = req.body.songs;
       const isPublic = req.body.public;
       const playlistDescription = req.body.description;
-  
+      const artistIds = req.body.artistIds;
+
       const userResponse = await axios.get('https://api.spotify.com/v1/me', {
-        headers: {
-          'Authorization': `Bearer ${spotifyAccessToken}`
-        }
+          headers: {
+              'Authorization': `Bearer ${spotifyAccessToken}`
+          }
       });
       const userId = userResponse.data.id;
-  
+
       const createPlaylistResponse = await axios.post(`https://api.spotify.com/v1/users/${userId}/playlists`, {
-        name: playlistName,
-        public: isPublic,
-        description: playlistDescription
+          name: playlistName,
+          public: isPublic,
+          description: playlistDescription
       }, {
-        headers: {
-          'Authorization': `Bearer ${spotifyAccessToken}`,
-          'Content-Type': 'application/json'
-        }
+          headers: {
+              'Authorization': `Bearer ${spotifyAccessToken}`,
+              'Content-Type': 'application/json'
+          }
       });
       const playlistId = createPlaylistResponse.data.id;
-  
-      const addTracksResponse = await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-        uris: songs.map(song => `spotify:track:${song}`)
-      }, {
-        headers: {
-          'Authorization': `Bearer ${spotifyAccessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-  
+
+      const trackUris = [];
+
+      for (let i = 0; i < artistIds.length; i++) {
+          const artistId = artistIds[i].substring(3);
+          const songOptions = artistIds[i].substring(0,3);
+          var topTracks = false;
+          var latestAlbum = false;
+          if (songOptions.charAt(0) == "T") {
+            topTracks = true;
+          }
+          if (songOptions.charAt(1) == "T") {
+            latestAlbum = true;
+          }
+
+          if (topTracks) {
+            const tracksResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`, {
+              headers: {
+                'Authorization': `Bearer ${spotifyAccessToken}`,
+                'Content-Type': 'application/json'
+            }
+            });
+            trackUris.push(...tracksResponse.data.tracks.map(item => `spotify:track:${item.id}`));
+          }
+          if (latestAlbum) {
+            const albumsResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}/albums?limit=1&include_groups=album&market=US`, {
+                headers: {
+                    'Authorization': `Bearer ${spotifyAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const albumId = albumsResponse.data.items[0].id;
+
+            const tracksResponse = await axios.get(`https://api.spotify.com/v1/albums/${albumId}/tracks`, {
+                headers: {
+                    'Authorization': `Bearer ${spotifyAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            trackUris.push(...tracksResponse.data.items.map(item => `spotify:track:${item.id}`));
+            }
+          }
+          const addTracksResponse = await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+            uris: [...new Set([...trackUris])]
+          }, {
+              headers: {
+                  'Authorization': `Bearer ${spotifyAccessToken}`,
+                  'Content-Type': 'application/json'
+              }
+          });
+
+
       res.json({
-        message: `Playlist "${playlistName}" created successfully with ${songs.length} songs.`
+          message: `Playlist "${playlistName}" created successfully with ${trackUris.length} songs.`
       });
-    } catch (error) {
+  } catch (error) {
       console.error(error);
-      if (error.response.status === 401) {
-        res.status(401).send('Unauthorized access.');
+      if (error.response && 'status' in error.response && error.response.status === 401) {
+          res.status(401).send('Unauthorized access.');
       } else {
-        res.status(500).send('An error occurred while creating the playlist.');
+          res.status(500).send('An error occurred while creating the playlist.');
       }
-    }
-  });
+  }
+});
+
 
 router.get('/search', async (req, res) => {
     let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
