@@ -94,10 +94,10 @@ router.get('/songs', async (req, res) => {
 router.post('/create', async (req, res) => {
   let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
   try {
-      const playlistName = req.body.name;
-      const isPublic = req.body.public;
+      const playlistName = req.body.title;
+      const isPublic = req.body.public || true;
       const playlistDescription = req.body.description;
-      const artistIds = req.body.artistIds;
+      const artistIds = req.body.artists;
 
       const userResponse = await axios.get('https://api.spotify.com/v1/me', {
           headers: {
