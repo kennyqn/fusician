@@ -6,6 +6,8 @@ const router = new express.Router()
 const axios = require('axios');
 const getArtist = require('../helpers/getArtist')
 
+const batchSize = 100
+
 // GET /albums
 router.get('/albums', async (req, res) => {
     let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
@@ -160,15 +162,27 @@ router.post('/create', async (req, res) => {
             trackUris.push(...tracksResponse.data.items.map(item => `spotify:track:${item.id}`));
             }
           }
-          const addTracksResponse = await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-            uris: [...new Set([...trackUris])]
-          }, {
-              headers: {
-                  'Authorization': `Bearer ${spotifyAccessToken}`,
-                  'Content-Type': 'application/json'
-              }
-          });
 
+          const totalTracks = trackUris.length;
+          let addedTracks = 0;
+          while (addedTracks < totalTracks) {
+            const batch = trackUris.slice(addedTracks, addedTracks + batchSize);
+      
+            const response = await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+              uris: batch
+            }, {
+              headers: {
+                'Authorization': `Bearer ${spotifyAccessToken}`,
+                'Content-Type': 'application/json'
+              }
+            });
+      
+            // Handle the response
+            console.log(`Added ${batch.length} tracks to playlist`);
+      
+            addedTracks += batch.length;
+          }
+      
 
       res.json({
           message: `Playlist "${playlistName}" created successfully with ${trackUris.length} songs.`
@@ -206,37 +220,20 @@ router.get('/search', async (req, res) => {
   });
 
 // GET /artist endpoint handler - retrieve information about an artist
-router.get('/artist/:id', (req, res) => {
-  const artistId = req.params.id;
+router.get('/artists', async (req, res) => {
+  let spotifyAccessToken = req.headers.authorization || process.env.SPOTIFY_ACCESS_TOKEN;
+  const artists = req.query.artists.split(',');
+  try {
+      const artistPromises = artists.map(id => getArtist(id, spotifyAccessToken));
 
-  // Call the getArtist function to retrieve artist information
-  getArtist(artistId, spotifyAccessToken)
-    .then(artist => {
-      // Retrieve additional information
-      const monthlyListeners = artist.followers.total;
-      const genres = artist.genres;
-      const topTracks = artist.topTracks.tracks;
-      const relatedArtists = artist.relatedArtists.artists;
+      const searchResults = await Promise.all(artistPromises);
 
-      // Create the artist object with additional information
-      const artistObject = {
-        id: artist.id,
-        name: artist.name,
-        imageUrl: artist.images.length > 0 ? artist.images[0].url : null,
-        popularity: artist.popularity,
-        monthlyListeners: monthlyListeners,
-        genres: genres,
-        topTracks: topTracks,
-        relatedArtists: relatedArtists
-      };
-
-      // Return the artist object as a JSON response
-      res.json(artistObject);
-    })
-    .catch(error => {
-      console.log(error);
+      res.json(searchResults);
+    }
+  catch (err) {
+      console.error(err);
       res.status(500).send('Error retrieving artist information');
-    });
+  }
 });
 
 module.exports = router;

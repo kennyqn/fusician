@@ -28,7 +28,7 @@ router.get('/events', async (req, res) => {
       const response = await axios.get(url);
 
       const artistIdsMap = new Map();
-      const artistsMap = new Map();
+      // const artistsMap = new Map();
 
       for (let i = 0; i < response.data._embedded.events.length; i++) {
         const event = response.data._embedded.events[i];
@@ -42,11 +42,11 @@ router.get('/events', async (req, res) => {
           return artistResponse.data.artists.items.length > 0 ? artistResponse.data.artists.items[0].id : null;
         }));
       
-        const artistPromises = artistIds.map((artistId) => getArtist(artistId, spotifyAccessToken));
+        // const artistPromises = artistIds.map((artistId) => getArtist(artistId, spotifyAccessToken));
       
-        const artists = await Promise.all(artistPromises);
+        // const artists = await Promise.all(artistPromises);
         artistIdsMap.set(event.id, artistIds);
-        artistsMap.set(event.id, artists);
+        // artistsMap.set(event.id, artists);
       }
 
       const events = response.data._embedded.events.map((event) => {
@@ -59,7 +59,7 @@ router.get('/events', async (req, res) => {
           ? event.dates.start.dateTime
           : event.dates.start.localDate,
           imageUrl: event.images.length > 0 ? event.images[0].url : null,
-          artists: artistsMap.get(event.id)
+          artists: artistIdsMap.get(event.id)
         }
       });
     
