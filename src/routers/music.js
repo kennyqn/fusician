@@ -123,15 +123,19 @@ router.post('/create', async (req, res) => {
       const trackUris = [];
 
       for (let i = 0; i < artistIds.length; i++) {
-          const artistId = artistIds[i].substring(3);
-          const songOptions = artistIds[i].substring(0,3);
+          const artistId = artistIds[i].substring(2);
+          const songOptions = artistIds[i].substring(0,1);
           var topTracks = false;
           var latestAlbum = false;
           if (songOptions.charAt(0) == "T") {
             topTracks = true;
-          }
-          if (songOptions.charAt(1) == "T") {
+          } else if (songOptions.charAt(0) == "L") {
             latestAlbum = true;
+          } else if (songOptions.charAt(0) == "B") {
+            topTracks = true;
+            latestAlbum = true;
+          } else {
+            console.log("Found invalid option")
           }
 
           if (topTracks) {
