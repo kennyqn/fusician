@@ -121,6 +121,7 @@ router.post('/create', async (req, res) => {
       const playlistId = createPlaylistResponse.data.id;
 
       const trackUris = [];
+      const addedTrackIds = new Set();
 
       for (let i = 0; i < artistIds.length; i++) {
           const artistId = artistIds[i].substring(2);
@@ -145,7 +146,9 @@ router.post('/create', async (req, res) => {
                 'Content-Type': 'application/json'
             }
             });
-            trackUris.push(...tracksResponse.data.tracks.map(item => `spotify:track:${item.id}`));
+            const newTracks = tracksResponse.data.tracks.filter(item => !addedTrackIds.has(item.id));
+            trackUris.push(...newTracks.map(item => `spotify:track:${item.id}`));
+            newTracks.forEach(item => addedTrackIds.add(item.id));
           }
           if (latestAlbum) {
             const albumsResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}/albums?limit=1&include_groups=album&market=US`, {
@@ -163,7 +166,9 @@ router.post('/create', async (req, res) => {
                     'Content-Type': 'application/json'
                 }
             });
-            trackUris.push(...tracksResponse.data.items.map(item => `spotify:track:${item.id}`));
+            const newTracks = tracksResponse.data.items.filter(item => !addedTrackIds.has(item.id));
+            trackUris.push(...newTracks.map(item => `spotify:track:${item.id}`));
+            newTracks.forEach(item => addedTrackIds.add(item.id));
             }
           }
 
