@@ -100,6 +100,7 @@ router.post('/create', async (req, res) => {
       const isPublic = req.body.public || true;
       const playlistDescription = req.body.description;
       const artistIds = req.body.artists;
+      const image = req.body.image;
 
       const userResponse = await axios.get('https://api.spotify.com/v1/me', {
           headers: {
@@ -191,6 +192,15 @@ router.post('/create', async (req, res) => {
       
             addedTracks += batch.length;
           }
+      if (typeof image !== 'undefined' && image) {
+        await axios.put(`https://api.spotify.com/v1/playlists/${playlistId}/images`, image, {
+          headers: {
+              'Authorization': `Bearer ${spotifyAccessToken}`,
+              'Content-Type': 'image/jpeg'
+          }
+      });
+
+      }    
       
 
       res.json({
@@ -199,6 +209,7 @@ router.post('/create', async (req, res) => {
   } catch (error) {
       console.error(error);
       if (error.response && 'status' in error.response && error.response.status === 401) {
+          console.log(error.response)
           res.status(401).send('Unauthorized access.');
       } else {
           res.status(500).send('An error occurred while creating the playlist.');

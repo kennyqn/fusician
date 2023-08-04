@@ -8,11 +8,12 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 
-app.use(express.json());
+app.use(express.json({ limit: '300kb' }));
 
 app.use(authRouter)
 app.use(musicRouter)
 app.use(eventsRouter)
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
